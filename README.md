@@ -1,20 +1,119 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Projeto Template API .NET 8
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+Este é um template para um projeto API utilizando .NET 8, Entity Framework, AutoMapper, padrão Unit of Work e Result Pattern. Este template pode ser usado como base para futuras implementações de APIs em projetos .NET.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+## Estrutura do Projeto
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+- **API**: Camada de apresentação que expõe os endpoints HTTP.
+- **Aplicação**: Camada de aplicação que contém os serviços de aplicação.
+- **Domínio**: Camada que contém as entidades e regras de negócio.
+- **Infraestrutura**: Camada que contém a implementação de persistência de dados e outros serviços de infraestrutura.
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+## Tecnologias Utilizadas
+
+- .NET 8
+- Entity Framework Core
+- AutoMapper
+- Padrão Unit of Work
+- Result Pattern
+
+## Configuração do Projeto
+
+### Pré-requisitos
+
+- .NET 8 SDK
+- SQL Server ou outro banco de dados compatível com Entity Framework
+
+### Instalação
+
+1. Clone o repositório:
+    ```bash
+    git clone https://github.com/usuario/projeto-template-api.git
+    cd projeto-template-api
+    ```
+
+2. Restaure os pacotes NuGet:
+    ```bash
+    dotnet restore
+    ```
+
+3. Configure a string de conexão no arquivo `appsettings.json`:
+    ```json
+    {
+      "ConnectionStrings": {
+        "DefaultConnection": "Server=seu_servidor;Database=sua_base_de_dados;User Id=seu_usuario;Password=sua_senha;"
+      }
+    }
+    ```
+
+4. Execute as migrações para configurar o banco de dados:
+    ```bash
+    dotnet ef database update
+    ```
+
+5. Execute o projeto:
+    ```bash
+    dotnet run
+    ```
+
+## Estrutura do Código
+
+### Unit of Work
+
+O padrão Unit of Work é implementado para gerenciar a transação de múltiplos repositórios. Isso garante que todas as operações de banco de dados em uma determinada unidade de trabalho sejam tratadas como uma única transação.
+
+### Result Pattern
+
+O Result Pattern é utilizado para retornar o status das operações. Isso ajuda a lidar com os diferentes resultados de uma operação (sucesso, falha, etc.) de uma maneira consistente.
+
+#### Classe Result
+
+```csharp
+using System.Net;
+
+namespace Template.Domain;
+
+public class Result<T>
+{
+    public bool IsSuccess { get; set; }
+    public ErrorDetails? Error { get; set; }
+    public T? Data { get; set; }
+    public PaginationDetails? Pagination { get; set; }
+
+    public static Result<T> Success(T data)
+    {
+        return new Result<T> { IsSuccess = true, Data = data };
+    }
+
+    public static Result<T> Success(T data, int pageSize, int pageNumber, int totalCount)
+    {
+        return new Result<T> { IsSuccess = true, Data = data, Pagination = new PaginationDetails(pageSize, pageNumber, totalCount) };
+    }
+
+    public static Result<T> Failure(HttpStatusCode statusCode, string errorMessage)
+    {
+        return new Result<T> { IsSuccess = false, Error = new ErrorDetails(statusCode, errorMessage) };
+    }
+}
+
+public class ErrorDetails
+{
+    public ErrorDetails(HttpStatusCode statusCode, string message)
+    {
+        StatusCode = (int)statusCode;
+        Message = message;
+    }
+    public int StatusCode { get; private set; }
+    public string Message { get; private set; }
+}
+
+public class PaginationDetails : PaginationParams
+{
+    public PaginationDetails(int pageSize, int pageNumber, int totalCount)
+    {
+        PageNumber = pageNumber;
+        PageSize = pageSize;
+        TotalCount = totalCount;
+    }
+    public int TotalCount { get; set; }
+}
